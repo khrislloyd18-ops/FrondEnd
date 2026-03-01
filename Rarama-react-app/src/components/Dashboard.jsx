@@ -1,305 +1,640 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import Sidebar from './Sidebar';
-import WeatherWidget from './WeatherWidget';
-import Chatbot from './Chatbot';
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
-  FaUsers, 
-  FaBook, 
-  FaUserGraduate, 
-  FaChartLine,
-  FaArrowUp,
-  FaArrowDown,
-  FaGraduationCap,
-  FaClock,
-  FaCheckCircle,
-  FaTimesCircle
-} from 'react-icons/fa';
-import { Line, Bar, Pie, Area, Radar, ComposedChart } from 'recharts';
+  PieChart, Pie, Cell, BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  AreaChart, Area, ComposedChart
+} from "recharts";
+import { 
+  FaGraduationCap, FaBook, FaCheckCircle, FaTimesCircle, 
+  FaClock, FaLink, FaStar, FaFire, FaChartLine, FaRocket,
+  FaArrowUp, FaArrowDown, FaEllipsisH, FaBell, FaSearch,
+  FaCalendarAlt, FaUserGraduate, FaChalkboardTeacher, FaGlobe,
+  FaAward, FaTrophy, FaMedal, FaCrown, FaBolt, FaGem,
+  FaHeart, FaThumbsUp, FaSmile, FaChartBar, FaChartPie,
+  FaUsers, FaUserPlus, FaUserCheck, FaUserClock,
+  FaArrowRight
+} from "react-icons/fa";
+import { HiOutlineSparkles } from "react-icons/hi";
+import { BsThreeDotsVertical } from "react-icons/bs";
+import { IoMdTrendingUp, IoMdTrendingDown } from "react-icons/io";
+import programsData from "../data/programs.json";
+import subjectsData from "../data/subjects.json";
+import "./Dashboard.css";
 
 const Dashboard = () => {
-  const [stats, setStats] = useState({
-    totalStudents: 1250,
-    totalCourses: 48,
-    activeEnrollments: 892,
-    completionRate: 78,
-    newThisMonth: 145,
-    graduationRate: 85
-  });
-
-  const [loading, setLoading] = useState(true);
+  const [programs, setPrograms] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [selectedChart, setSelectedChart] = useState("pie");
+  const [timeRange, setTimeRange] = useState("week");
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [animatedStats, setAnimatedStats] = useState({});
 
   useEffect(() => {
-    // Simulate data loading
-    setTimeout(() => setLoading(false), 1000);
+    setPrograms(programsData);
+    setSubjects(subjectsData);
+    
+    // Animate stats counting
+    const stats = {
+      totalPrograms: programsData.length,
+      totalSubjects: subjectsData.length,
+      activePrograms: programsData.filter(p => p.status === "active").length,
+      subjectsWithPrerequisites: subjectsData.filter(s => s.preRequisites && s.preRequisites.length > 0).length
+    };
+    
+    setAnimatedStats(stats);
   }, []);
 
-  // Enhanced mock data
-  const enrollmentTrend = [
-    { month: 'Jan', students: 65, previous: 55 },
-    { month: 'Feb', students: 85, previous: 70 },
-    { month: 'Mar', students: 120, previous: 95 },
-    { month: 'Apr', students: 98, previous: 88 },
-    { month: 'May', students: 145, previous: 110 },
-    { month: 'Jun', students: 168, previous: 135 }
+  // Calculations
+  const totalPrograms = programs.length;
+  const totalSubjects = subjects.length;
+  const activePrograms = programs.filter(p => p.status === "active").length;
+  const inactivePrograms = programs.filter(p => p.status !== "active").length;
+  const programsUnderReview = programs.filter(p => p.status === "under review").length;
+  const programsPhasedOut = programs.filter(p => p.status === "phased out").length;
+  
+  const subjectsPerSemester = subjects.filter(s => s.semesterTerm === "semester").length;
+  const subjectsPerTerm = subjects.filter(s => s.semesterTerm === "term").length;
+  const subjectsBoth = subjects.filter(s => s.semesterTerm === "both").length;
+  const subjectsWithPrerequisites = subjects.filter(s => s.preRequisites && s.preRequisites.length > 0).length;
+  const subjectsWithoutPrerequisites = subjects.filter(s => !s.preRequisites || s.preRequisites.length === 0).length;
+
+  // Enhanced chart data
+  const programStatusData = [
+    { name: "Active", value: activePrograms, color: "#10b981", gradient: ["#10b981", "#059669"], icon: FaCheckCircle },
+    { name: "Under Review", value: programsUnderReview, color: "#f59e0b", gradient: ["#f59e0b", "#d97706"], icon: FaClock },
+    { name: "Phased Out", value: programsPhasedOut, color: "#ef4444", gradient: ["#ef4444", "#dc2626"], icon: FaTimesCircle }
   ];
 
-  const courseDistribution = [
-    { name: 'Computer Science', value: 35, color: '#6366f1' },
-    { name: 'Engineering', value: 25, color: '#ec4899' },
-    { name: 'Business', value: 20, color: '#10b981' },
-    { name: 'Arts', value: 15, color: '#f59e0b' },
-    { name: 'Others', value: 5, color: '#8b5cf6' }
+  const semesterDistributionData = [
+    { name: "Semester", value: subjectsPerSemester, color: "#6366f1", icon: FaCalendarAlt },
+    { name: "Term", value: subjectsPerTerm, color: "#ec4899", icon: FaClock },
+    { name: "Both", value: subjectsBoth, color: "#8b5cf6", icon: FaGlobe }
   ];
 
-  const weeklyActivity = [
-    { day: 'Mon', enrollments: 12, completions: 8, dropouts: 2 },
-    { day: 'Tue', enrollments: 18, completions: 12, dropouts: 1 },
-    { day: 'Wed', enrollments: 15, completions: 10, dropouts: 3 },
-    { day: 'Thu', enrollments: 22, completions: 15, dropouts: 2 },
-    { day: 'Fri', enrollments: 28, completions: 20, dropouts: 4 },
-    { day: 'Sat', enrollments: 8, completions: 5, dropouts: 1 },
-    { day: 'Sun', enrollments: 3, completions: 2, dropouts: 0 }
+  const prerequisiteData = [
+    { name: "With Prerequisites", value: subjectsWithPrerequisites, color: "#f59e0b" },
+    { name: "Without Prerequisites", value: subjectsWithoutPrerequisites, color: "#10b981" }
   ];
 
-  const performanceMetrics = [
-    { subject: 'Attendance', A: 95, fullMark: 100 },
-    { subject: 'Grades', A: 88, fullMark: 100 },
-    { subject: 'Completion', A: 92, fullMark: 100 },
-    { subject: 'Satisfaction', A: 85, fullMark: 100 },
-    { subject: 'Engagement', A: 78, fullMark: 100 }
+  const weeklyActivityData = [
+    { day: "Mon", programs: 2, subjects: 5, total: 7 },
+    { day: "Tue", programs: 3, subjects: 7, total: 10 },
+    { day: "Wed", programs: 1, subjects: 4, total: 5 },
+    { day: "Thu", programs: 4, subjects: 8, total: 12 },
+    { day: "Fri", programs: 2, subjects: 6, total: 8 },
+    { day: "Sat", programs: 1, subjects: 3, total: 4 },
+    { day: "Sun", programs: 0, subjects: 2, total: 2 }
   ];
 
   const recentActivities = [
-    { id: 1, action: 'New enrollment', student: 'John Doe', course: 'CS101', time: '5 min ago', status: 'success' },
-    { id: 2, action: 'Course completed', student: 'Jane Smith', course: 'ENG201', time: '15 min ago', status: 'success' },
-    { id: 3, action: 'Payment received', student: 'Bob Johnson', course: 'BUS301', time: '1 hour ago', status: 'success' },
-    { id: 4, action: 'Dropout request', student: 'Alice Brown', course: 'ART102', time: '2 hours ago', status: 'warning' },
+    { 
+      id: 1, 
+      action: "New program added", 
+      item: "BS Computer Science", 
+      time: "2 hours ago", 
+      icon: FaGraduationCap, 
+      color: "var(--primary-500)",
+      user: "Admin",
+      avatar: "A"
+    },
+    { 
+      id: 2, 
+      action: "Subject updated", 
+      item: "IT101 - Introduction to IT", 
+      time: "5 hours ago", 
+      icon: FaBook, 
+      color: "var(--secondary-500)",
+      user: "Faculty",
+      avatar: "F"
+    },
+    { 
+      id: 3, 
+      action: "Program status changed", 
+      item: "BSIT → Active", 
+      time: "1 day ago", 
+      icon: FaCheckCircle, 
+      color: "var(--success-500)",
+      user: "Admin",
+      avatar: "A"
+    },
+    { 
+      id: 4, 
+      action: "New prerequisite added", 
+      item: "Math101 → CS201", 
+      time: "2 days ago", 
+      icon: FaLink, 
+      color: "var(--info-500)",
+      user: "Faculty",
+      avatar: "F"
+    }
   ];
 
-  if (loading) {
-    return (
-      <div className="dashboard">
-        <Sidebar />
-        <div className="main-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <div className="loading-spinner"></div>
-        </div>
-      </div>
-    );
-  }
+  const topPrograms = [
+    { name: "BSIT", students: 245, trend: +12, icon: FaTrophy, color: "#FFD700" },
+    { name: "BSCS", students: 189, trend: +8, icon: FaMedal, color: "#C0C0C0" },
+    { name: "ACT", students: 156, trend: +15, icon: FaMedal, color: "#CD7F32" },
+    { name: "MSCS", students: 45, trend: +5, icon: FaAward, color: "#6366f1" }
+  ];
+
+  const statsCards = [
+    { 
+      title: "Total Programs", 
+      value: totalPrograms, 
+      icon: FaGraduationCap, 
+      gradient: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+      trend: "+12.5%",
+      trendUp: true,
+      delay: 0.1,
+      secondaryIcon: FaTrophy,
+      bgPattern: "dots"
+    },
+    { 
+      title: "Total Subjects", 
+      value: totalSubjects, 
+      icon: FaBook, 
+      gradient: "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)",
+      trend: "+8.3%",
+      trendUp: true,
+      delay: 0.2,
+      secondaryIcon: FaStar,
+      bgPattern: "lines"
+    },
+    { 
+      title: "Active Programs", 
+      value: activePrograms, 
+      icon: FaCheckCircle, 
+      gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+      trend: "+5.2%",
+      trendUp: true,
+      delay: 0.3,
+      secondaryIcon: FaBolt,
+      bgPattern: "circles"
+    },
+    { 
+      title: "With Prerequisites", 
+      value: subjectsWithPrerequisites, 
+      icon: FaLink, 
+      gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+      trend: "+15.7%",
+      trendUp: true,
+      delay: 0.4,
+      secondaryIcon: FaGem,
+      bgPattern: "triangles"
+    }
+  ];
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 30, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15
+      }
+    }
+  };
+
+  const chartVariants = {
+    hidden: { scale: 0.8, opacity: 0 },
+    visible: {
+      scale: 1,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15,
+        delay: 0.3
+      }
+    }
+  };
+
+  // Close notification when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showNotifications && !event.target.closest('.notification-icon')) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotifications]);
 
   return (
-    <div className="dashboard">
-      <Sidebar />
-      <div className="main-content">
-        <motion.div 
-          className="page-header"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1>Dashboard</h1>
-          <p>Welcome back! Here's what's happening with your enrollment system.</p>
-        </motion.div>
-
-        <motion.div 
-          className="widgets-grid"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <motion.div 
-            className="widget"
+    <motion.div 
+      className="dashboard light-theme"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Header Section */}
+      <motion.div className="dashboard-header" variants={itemVariants}>
+        <div className="header-left">
+          <motion.h1 
+            className="dashboard-title"
             whileHover={{ scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 300 }}
+            transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
-            <div className="widget-header">
-              <h3>Total Students</h3>
-              <div className="widget-icon">
-                <FaUsers />
-              </div>
+            <HiOutlineSparkles className="title-sparkle" />
+            University of Mindanao Dashboard
+          </motion.h1>
+          <div className="welcome-message">
+            <p className="dashboard-subtitle">Welcome back, Administrator!</p>
+            <div className="quick-stats-header">
+              <span className="quick-stat-header-item">
+                <FaUsers /> 1,234 Students
+              </span>
+              <span className="quick-stat-header-item">
+                <FaUserCheck /> 89 Faculty
+              </span>
+              <span className="quick-stat-header-item">
+                <FaBook /> 45 Courses
+              </span>
             </div>
-            <div className="widget-value">{stats.totalStudents.toLocaleString()}</div>
-            <div className="widget-trend">
-              <span className="trend-up"><FaArrowUp /> 12%</span>
-              <span>vs last month</span>
-            </div>
-          </motion.div>
-
+          </div>
+        </div>
+        
+        <div className="header-right">
           <motion.div 
-            className="widget"
+            className="time-range-selector"
             whileHover={{ scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 300 }}
           >
-            <div className="widget-header">
-              <h3>Active Courses</h3>
-              <div className="widget-icon">
-                <FaBook />
-              </div>
-            </div>
-            <div className="widget-value">{stats.totalCourses}</div>
-            <div className="widget-trend">
-              <span className="trend-up"><FaArrowUp /> 5%</span>
-              <span>vs last month</span>
-            </div>
-          </motion.div>
-
-          <motion.div 
-            className="widget"
-            whileHover={{ scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 300 }}
-          >
-            <div className="widget-header">
-              <h3>Active Enrollments</h3>
-              <div className="widget-icon">
-                <FaUserGraduate />
-              </div>
-            </div>
-            <div className="widget-value">{stats.activeEnrollments}</div>
-            <div className="widget-trend">
-              <span className="trend-up"><FaArrowUp /> 8%</span>
-              <span>vs last month</span>
-            </div>
-          </motion.div>
-
-          <motion.div 
-            className="widget"
-            whileHover={{ scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 300 }}
-          >
-            <div className="widget-header">
-              <h3>Completion Rate</h3>
-              <div className="widget-icon">
-                <FaChartLine />
-              </div>
-            </div>
-            <div className="widget-value">{stats.completionRate}%</div>
-            <div className="widget-trend">
-              <span className="trend-down"><FaArrowDown /> 3%</span>
-              <span>vs last month</span>
-            </div>
-          </motion.div>
-        </motion.div>
-
-        <div className="charts-container">
-          <motion.div 
-            className="chart-card"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <h3>Enrollment Trends</h3>
-            <Area
-              width={400}
-              height={200}
-              data={enrollmentTrend}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            <button 
+              className={`time-btn ${timeRange === 'week' ? 'active' : ''}`}
+              onClick={() => setTimeRange('week')}
             >
-              <Area type="monotone" dataKey="students" stroke="#6366f1" fill="url(#colorGradient)" />
-              <defs>
-                <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-            </Area>
-          </motion.div>
-
-          <motion.div 
-            className="chart-card"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <h3>Course Distribution</h3>
-            <Pie
-              width={400}
-              height={200}
-              data={courseDistribution}
+              Week
+            </button>
+            <button 
+              className={`time-btn ${timeRange === 'month' ? 'active' : ''}`}
+              onClick={() => setTimeRange('month')}
             >
-              <Pie dataKey="value" fill="#8884d8" label />
-            </Pie>
-          </motion.div>
-
-          <motion.div 
-            className="chart-card"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-          >
-            <h3>Weekly Activity</h3>
-            <Bar
-              width={400}
-              height={200}
-              data={weeklyActivity}
-              margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+              Month
+            </button>
+            <button 
+              className={`time-btn ${timeRange === 'year' ? 'active' : ''}`}
+              onClick={() => setTimeRange('year')}
             >
-              <Bar dataKey="enrollments" fill="#6366f1" />
-              <Bar dataKey="completions" fill="#10b981" />
-              <Bar dataKey="dropouts" fill="#ef4444" />
-            </Bar>
+              Year
+            </button>
           </motion.div>
-
-          <motion.div 
-            className="chart-card"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
-          >
-            <h3>Performance Metrics</h3>
-            <Radar
-              width={400}
-              height={200}
-              data={performanceMetrics}
+          
+          <div className="notification-wrapper">
+            <motion.div 
+              className="notification-icon"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowNotifications(!showNotifications)}
             >
-              <Radar dataKey="A" stroke="#6366f1" fill="#6366f1" fillOpacity={0.6} />
-            </Radar>
+              <FaBell />
+              <span className="notification-badge">4</span>
+              
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div 
+                    className="notification-dropdown"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="notification-header">
+                      <h4>Notifications</h4>
+                      <span>4 new</span>
+                    </div>
+                    <div className="notification-list">
+                      {recentActivities.map(activity => (
+                        <div key={activity.id} className="notification-item">
+                          <div className="notification-avatar" style={{ background: activity.color }}>
+                            {activity.avatar}
+                          </div>
+                          <div className="notification-content">
+                            <p>{activity.action}</p>
+                            <small>{activity.item}</small>
+                            <span className="notification-time">{activity.time}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="notification-footer">
+                      <button className="view-all-notifications">View All</button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </div>
+          
+          <motion.div 
+            className="profile-section"
+            whileHover={{ scale: 1.05 }}
+          >
+            <div className="profile-icon">
+              <FaUserGraduate />
+            </div>
+            <div className="profile-info">
+              <span className="profile-name">Admin User</span>
+              <span className="profile-role">Administrator</span>
+            </div>
           </motion.div>
         </div>
+      </motion.div>
 
+      {/* Stats Grid */}
+      <motion.div className="stats-grid-enhanced" variants={itemVariants}>
+        {statsCards.map((stat, index) => (
+          <motion.div
+            key={index}
+            className={`stat-card-enhanced ${stat.bgPattern}`}
+            variants={itemVariants}
+            custom={index}
+            whileHover={{ 
+              y: -8,
+              boxShadow: "var(--shadow-2xl)",
+              transition: { type: "spring", stiffness: 400, damping: 10 }
+            }}
+            style={{ background: stat.gradient }}
+          >
+            <div className="stat-icon-wrapper-enhanced">
+              <stat.icon className="stat-main-icon" />
+              <stat.secondaryIcon className="stat-secondary-icon" />
+            </div>
+            <div className="stat-content-enhanced">
+              <div className="stat-header-enhanced">
+                <h3>{stat.title}</h3>
+                <span className={`stat-trend-enhanced ${stat.trendUp ? 'up' : 'down'}`}>
+                  {stat.trendUp ? <IoMdTrendingUp /> : <IoMdTrendingDown />}
+                  {stat.trend}
+                </span>
+              </div>
+              <p className="stat-value-enhanced">{stat.value}</p>
+              <div className="stat-progress">
+                <div className="progress-bar" style={{ width: '75%' }} />
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
+
+      {/* Charts Grid */}
+      <div className="charts-grid-enhanced">
+        {/* Program Status Chart */}
         <motion.div 
-          className="content-card"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.7 }}
-          style={{ marginTop: '30px' }}
+          className="chart-card-enhanced"
+          variants={chartVariants}
+          whileHover={{ y: -5, boxShadow: "var(--shadow-2xl)" }}
         >
-          <h3 style={{ marginBottom: '20px', color: 'white' }}>Recent Activities</h3>
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Action</th>
-                  <th>Student</th>
-                  <th>Course</th>
-                  <th>Time</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentActivities.map(activity => (
-                  <tr key={activity.id}>
-                    <td>{activity.action}</td>
-                    <td>{activity.student}</td>
-                    <td>{activity.course}</td>
-                    <td>{activity.time}</td>
-                    <td>
-                      {activity.status === 'success' ? 
-                        <FaCheckCircle style={{ color: '#10b981' }} /> : 
-                        <FaTimesCircle style={{ color: '#f59e0b' }} />
-                      }
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="chart-header-enhanced">
+            <div className="chart-title-group">
+              <FaChartPie className="chart-header-icon" />
+              <h2>Program Status Distribution</h2>
+            </div>
+            <div className="chart-actions-enhanced">
+              <button 
+                className={`chart-action-btn ${selectedChart === 'pie' ? 'active' : ''}`}
+                onClick={() => setSelectedChart('pie')}
+              >
+                Pie
+              </button>
+              <button 
+                className={`chart-action-btn ${selectedChart === 'bar' ? 'active' : ''}`}
+                onClick={() => setSelectedChart('bar')}
+              >
+                Bar
+              </button>
+              <BsThreeDotsVertical className="chart-more" />
+            </div>
+          </div>
+          <div className="chart-wrapper-enhanced">
+            <ResponsiveContainer width="100%" height={300}>
+              {selectedChart === 'pie' ? (
+                <PieChart>
+                  <Pie
+                    data={programStatusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {programStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              ) : (
+                <BarChart data={programStatusData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                    {programStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              )}
+            </ResponsiveContainer>
           </div>
         </motion.div>
 
-        <WeatherWidget />
-        <Chatbot />
+        {/* Semester Distribution Chart */}
+        <motion.div 
+          className="chart-card-enhanced"
+          variants={chartVariants}
+          whileHover={{ y: -5, boxShadow: "var(--shadow-2xl)" }}
+        >
+          <div className="chart-header-enhanced">
+            <div className="chart-title-group">
+              <FaCalendarAlt className="chart-header-icon" />
+              <h2>Semester/Term Distribution</h2>
+            </div>
+          </div>
+          <div className="chart-wrapper-enhanced">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={semesterDistributionData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                  {semesterDistributionData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Prerequisite Distribution */}
+        <motion.div 
+          className="chart-card-enhanced"
+          variants={chartVariants}
+          whileHover={{ y: -5, boxShadow: "var(--shadow-2xl)" }}
+        >
+          <div className="chart-header-enhanced">
+            <div className="chart-title-group">
+              <FaLink className="chart-header-icon" />
+              <h2>Prerequisite Distribution</h2>
+            </div>
+          </div>
+          <div className="chart-wrapper-enhanced">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={prerequisiteData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                >
+                  {prerequisiteData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Weekly Activity */}
+        <motion.div 
+          className="chart-card-enhanced"
+          variants={chartVariants}
+          whileHover={{ y: -5, boxShadow: "var(--shadow-2xl)" }}
+        >
+          <div className="chart-header-enhanced">
+            <div className="chart-title-group">
+              <FaFire className="chart-header-icon" />
+              <h2>Weekly Activity</h2>
+            </div>
+          </div>
+          <div className="chart-wrapper-enhanced">
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={weeklyActivityData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="day" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="programs" stroke="#6366f1" strokeWidth={2} />
+                <Line type="monotone" dataKey="subjects" stroke="#ec4899" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
       </div>
-    </div>
+
+      {/* Bottom Section */}
+      <div className="dashboard-bottom-enhanced">
+        {/* Recent Activities */}
+        <motion.div 
+          className="activities-card-enhanced"
+          variants={itemVariants}
+          whileHover={{ y: -5, boxShadow: "var(--shadow-2xl)" }}
+        >
+          <div className="activities-header-enhanced">
+            <div className="header-title-group">
+              <FaBell className="activities-icon" />
+              <h2>Recent Activities</h2>
+            </div>
+            <button className="view-all-btn-enhanced">
+              View All <FaArrowRight />
+            </button>
+          </div>
+          <div className="activities-list-enhanced">
+            {recentActivities.map((activity, index) => (
+              <motion.div 
+                key={activity.id}
+                className="activity-item-enhanced"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ x: 5 }}
+              >
+                <div className="activity-avatar" style={{ background: activity.color }}>
+                  {activity.avatar}
+                </div>
+                <div className="activity-content-enhanced">
+                  <div className="activity-header">
+                    <span className="activity-action">{activity.action}</span>
+                    <span className="activity-user">{activity.user}</span>
+                  </div>
+                  <div className="activity-item-name">{activity.item}</div>
+                  <div className="activity-time">{activity.time}</div>
+                </div>
+                <BsThreeDotsVertical className="activity-more" />
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Top Programs Leaderboard */}
+        <motion.div 
+          className="leaderboard-card-enhanced"
+          variants={itemVariants}
+          whileHover={{ y: -5, boxShadow: "var(--shadow-2xl)" }}
+        >
+          <div className="leaderboard-header">
+            <div className="header-title-group">
+              <FaTrophy className="leaderboard-icon" />
+              <h2>Top Programs</h2>
+            </div>
+            <span className="leaderboard-badge">This Month</span>
+          </div>
+          <div className="leaderboard-list">
+            {topPrograms.map((program, index) => (
+              <motion.div 
+                key={program.name}
+                className="leaderboard-item"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ x: 5 }}
+              >
+                <div className="rank-badge" style={{ background: program.color }}>
+                  {index + 1}
+                </div>
+                <program.icon className="program-rank-icon" style={{ color: program.color }} />
+                <div className="program-info">
+                  <span className="program-name">{program.name}</span>
+                  <span className="program-students">{program.students} students</span>
+                </div>
+                <span className={`program-trend ${program.trend > 0 ? 'up' : 'down'}`}>
+                  {program.trend > 0 ? <IoMdTrendingUp /> : <IoMdTrendingDown />}
+                  {Math.abs(program.trend)}%
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    </motion.div>
   );
 };
 

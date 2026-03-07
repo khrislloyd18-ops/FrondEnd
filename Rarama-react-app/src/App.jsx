@@ -8,6 +8,7 @@ import ProgramDetails from "./components/ProgramDetails";
 import SubjectList from "./components/SubjectList";
 import SubjectDetails from "./components/SubjectDetails";
 import Login from "./components/login/login";
+import { authService } from './services/authService';
 import "./App.css";
 
 const App = () => {
@@ -17,12 +18,12 @@ const App = () => {
 
   useEffect(() => {
     // Check if user is already logged in
-    const auth = localStorage.getItem("isAuthenticated");
-    const savedUser = localStorage.getItem("user");
+    const auth = authService.isAuthenticated();
+    const currentUser = authService.getCurrentUser();
     
-    if (auth === "true" && savedUser) {
+    if (auth && currentUser) {
       setIsAuthenticated(true);
-      setUser(JSON.parse(savedUser));
+      setUser(currentUser);
     }
     
     setIsLoading(false);
@@ -33,9 +34,8 @@ const App = () => {
     setUser(userData);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    await authService.logout();
     setIsAuthenticated(false);
     setUser(null);
   };

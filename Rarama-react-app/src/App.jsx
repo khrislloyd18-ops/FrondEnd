@@ -1,127 +1,283 @@
-import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, NavLink } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { FaHome, FaBook, FaGraduationCap, FaSignOutAlt } from "react-icons/fa";
-import Dashboard from "./components/Dashboard";
-import ProgramList from "./components/ProgramList";
-import ProgramDetails from "./components/ProgramDetails";
-import SubjectList from "./components/SubjectList";
-import SubjectDetails from "./components/SubjectDetails";
-import Login from "./components/login/login";
-import { authService } from './services/authService';
-import "./App.css";
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { motion } from 'framer-motion';
 
-const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+// Fix imports - make sure each component exists and is properly exported
+import Login from './components/auth/Login';
+import SignUp from './components/auth/SignUp';
+import Dashboard from './components/dashboard/Dashboard';
+import MainLayout from './components/layout/MainLayout';
+import ErrorBoundary from './components/common/ErrorBoundary';
+import StudentsPage from './components/students/StudentsPage';
+import CourseList from './pages/CourseList';
+import ReportsPage from './components/reports/ReportsPage';
+import WeatherPage from './components/weather/WeatherPage';
+import SchoolDays from './components/school/SchoolDays';
+import ProfilePage from './components/profile/ProfilePage';
+import { AuthProvider, useAuth } from './context/AuthContext';
+
+const GlobalErrorOverlay = () => {
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const auth = authService.isAuthenticated();
-    const currentUser = authService.getCurrentUser();
-    
-    if (auth && currentUser) {
-      setIsAuthenticated(true);
-      setUser(currentUser);
-    }
-    
-    setIsLoading(false);
+    const handleError = (event) => {
+      setError({
+        message: event.message || 'Unknown error',
+        stack: event.error?.stack || null,
+        source: 'window.onerror',
+      });
+    };
+
+    const handleRejection = (event) => {
+      setError({
+        message: event.reason?.message || String(event.reason),
+        stack: event.reason?.stack || null,
+        source: 'unhandledrejection',
+      });
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleRejection);
+    };
   }, []);
 
-  const handleLogin = (userData) => {
-    setIsAuthenticated(true);
-    setUser(userData);
-  };
+  if (!error) return null;
 
-  const handleLogout = async () => {
-    await authService.logout();
-    setIsAuthenticated(false);
-    setUser(null);
-  };
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-6">
+      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 overflow-auto">
+        <h2 className="text-xl font-semibold text-red-600 mb-3">Runtime Error Detected</h2>
+        <p className="text-sm text-gray-700 mb-2">{error.message}</p>
+        {error.stack && (
+          <pre className="text-xs bg-gray-100 p-3 rounded-lg overflow-auto">{error.stack}</pre>
+        )}
+        <p className="text-xs text-gray-500 mt-4">Source: {error.source}</p>
+        <button
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
+          onClick={() => setError(null)}
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
+};
 
-  if (isLoading) {
+// Simple Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
+function AppContent() {
+  const { isAuthenticated, user, loading } = useAuth();
+
+  // Show loading screen while checking authentication
+  if (loading) {
     return (
-      <div className="loading-screen">
-        <div className="loading-spinner-large"></div>
-        <p>Loading University of Mindanao Portal...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500">
+        <div className="text-center">
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ 
+              duration: 0.8, 
+              type: "spring", 
+              stiffness: 100, 
+              damping: 15,
+              ease: "easeOut"
+            }}
+            className="mb-8"
+          >
+            <img 
+              src="/umtc.png" 
+              alt="UMTC Logo" 
+              className="w-48 h-48 object-contain mx-auto"
+            />
+          </motion.div>
+          <motion.p
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ 
+              delay: 0.4, 
+              duration: 0.6,
+              ease: "easeOut"
+            }}
+            className="text-white text-2xl font-light"
+          >
+            please wait
+          </motion.p>
+        </div>
       </div>
     );
   }
 
   return (
-    <Router>
-      <div className="app">
-        <AnimatePresence mode="wait">
-          {!isAuthenticated ? (
-            <Login key="login" onLogin={handleLogin} />
-          ) : (
-            <motion.div
-              key="main"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="main-app"
-            >
-              <nav className="navbar">
-                <div className="nav-brand">
-                  <motion.div 
-                    className="logo"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <img src="/umtc.png" alt="UMTC Logo" className="logo-img" />
-                    <span>University of Mindanao</span>
-                  </motion.div>
-                </div>
-                
-                <div className="nav-links">
-                  <NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                    <FaHome />
-                    <span>Dashboard</span>
-                  </NavLink>
-                  <NavLink to="/programs" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                    <FaBook />
-                    <span>Programs</span>
-                  </NavLink>
-                  <NavLink to="/subjects" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                    <FaGraduationCap />
-                    <span>Subjects</span>
-                  </NavLink>
-                </div>
+    <div className="App">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+        }}
+      />
 
-                <div className="nav-user">
-                  <div className="user-info">
-                    <span className="user-name">{user?.name}</span>
-                    <span className="user-role">{user?.role}</span>
-                  </div>
-                  <motion.button 
-                    className="logout-btn"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleLogout}
-                  >
-                    <FaSignOutAlt />
-                  </motion.button>
-                </div>
-              </nav>
+      
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            isAuthenticated ?
+            <Navigate to="/dashboard" replace /> :
+            <Login />
+          }
+        />
 
-              <main className="main-content">
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/programs" element={<ProgramList />} />
-                  <Route path="/programs/:programCode" element={<ProgramDetails />} />
-                  <Route path="/subjects" element={<SubjectList />} />
-                  <Route path="/subjects/:subjectCode" element={<SubjectDetails />} />
-                  <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
-              </main>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </Router>
+        <Route
+          path="/signup"
+          element={
+            isAuthenticated ?
+            <Navigate to="/dashboard" replace /> :
+            <SignUp />
+          }
+        />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Dashboard />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/students"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <StudentsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/courses"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <CourseList />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <ReportsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/weather"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <WeatherPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/school-days"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <SchoolDays />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <ProfilePage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <ProfilePage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/"
+          element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
+        />
+
+        <Route
+          path="*"
+          element={
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-4xl font-bold text-gray-800 mb-4">404</h1>
+                <p className="text-gray-600 mb-4">Page not found</p>
+                <button
+                  onClick={() => window.location.href = '/'}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+                >
+                  Go Home
+                </button>
+              </div>
+            </div>
+          }
+        />
+      </Routes>
+    </div>
   );
-};
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <Router>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </Router>
+    </ErrorBoundary>
+  );
+}
 
 export default App;
